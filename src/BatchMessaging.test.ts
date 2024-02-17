@@ -141,4 +141,37 @@ describe('BatchMessaging', () => {
 
     expect(zkApp.highestMsgNum.get().toBigInt()).toBe(50n);
   });
+
+  it('should maintain state between multiple postMessages', async () => {
+    await localDeploy();
+    let maxTillNow = 0;
+    for (let i = 0; i < 100; i++) {
+      const txn = await Mina.transaction(feePayerAccount, () => {
+        const r = Math.floor(Math.random() * 1e5);
+        maxTillNow = Math.max(maxTillNow, r);
+        zkApp.postMessage(
+          UInt64.from(r),
+          UInt64.from(i),
+          UInt64.from(1000),
+          UInt64.from(5000),
+          UInt64.from(6000 + i)
+        );
+      });
+      await txn.prove();
+      await txn.sign([feePayerkey]).send();
+
+      if (i % 10 == 0) {
+        console.log('maxTillNow', maxTillNow);
+        const txn = await Mina.transaction(feePayerAccount, () => {
+          zkApp.processMessage();
+        });
+        await txn.prove();
+        await txn.sign([feePayerkey]).send();
+        console.log('zkapp ', zkApp.highestMsgNum.get().toBigInt());
+        expect(zkApp.highestMsgNum.get().toBigInt().toString()).toBe(
+          '' + maxTillNow
+        );
+      }
+    }
+  });
 });
