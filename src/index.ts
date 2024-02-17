@@ -1,3 +1,3 @@
-import { Add } from './Add.js';
+import { BatchMessaging } from './BatchMessaging.js';
 
-export { Add };
+export { BatchMessaging };
